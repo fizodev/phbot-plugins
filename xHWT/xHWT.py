@@ -6,18 +6,19 @@ import os
 
 pName = 'xHWT'
 pVersion = '1.0.0'
-pUrl = ''
+pUrl = 'https://github.com/fizodev/phbot-plugins/tree/main/xHWT'
 
 # Initialize GUI
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'Welcome to xHWT plugin, it\'s a simple plugin to manage micro tasks for HWT daily entries. '+
-                             '\n\n It will skip the existing run if you reach the max entries limit. '+
-                            '\n\n Developed by ViRUS (Shadows <3)',
-                             6, 10)
+'\n\n It will skip the existing run if you reach the max entries limit. '+
+'\n\n You have to be using the HWT scripts from the repository here (https://github.com/fizodev/phbot-plugins). '+
+'\n\n Developed by ViRUS (Shadows <3)',
+6, 10)
 
 
 # Create the enable/disable checkbox
-cbxEnabled = QtBind.createCheckBox(gui, 'cbxEnabled_checked', 'Enable plugin', 6, 125)
+cbxEnabled = QtBind.createCheckBox(gui, 'cbxEnabled_checked', 'Enable plugin', 6, 140)
 pluginEnabled = False
 
 # target OP codes for max entries
