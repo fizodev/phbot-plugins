@@ -38,29 +38,45 @@ found_data_part2 = False
 # centralized logger
 def xHWT_log(message):
     log('Plugin (xHWT): '+message)
-    
+
 # Return plugin configs path (JSON)
 def getConfig():
     return get_config_dir() + pName + ".json"
 
 # Load configs
 def loadConfigs():
+    # Load character data
+    char_name = get_character_data()['name']
+    # Load plugin configs
     if os.path.exists(getConfig()):
         with open(getConfig(), "r") as f:
             data = json.load(f)
-        # Load enabled state
-        if "Enabled" in data:
+        # Load enabled state based on the char name
+        if char_name in data:
             global pluginEnabled
-            pluginEnabled = data["Enabled"]
+            pluginEnabled = data[char_name]
             QtBind.setChecked(gui, cbxEnabled, pluginEnabled)
 
 # Save configs
 def saveConfigs():
-    data = {}
-    data['Enabled'] = pluginEnabled
+    # Get character name
+    char_name = get_character_data()['name']
 
+    # Initialize data dictionary
+    data = {}
+
+    # Load existing config if it exists
+    if os.path.exists(getConfig()):
+        with open(getConfig(), "r") as f:
+            data = json.load(f)
+
+    # Update the character's enabled state
+    data[char_name] = pluginEnabled
+
+    # Save the updated config
     with open(getConfig(), "w") as f:
         f.write(json.dumps(data, indent=4, sort_keys=True))
+    xHWT_log("Plugin configs saved successfully.")
 
 # Checkbox handler
 def cbxEnabled_checked(checked):
