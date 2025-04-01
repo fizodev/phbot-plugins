@@ -193,6 +193,3 @@ def leave_party():
 log('Plugin: ' + pName + ' (By Virus) v' + pVersion + ' successfully loaded')
 loadConfigs()
 
-# centralized logger
-def xHWT_log(message):
-    log('Plugin (xHWT): '+message)
