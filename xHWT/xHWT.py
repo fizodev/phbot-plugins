@@ -35,6 +35,10 @@ found_op_code = False
 found_data_part1 = False
 found_data_part2 = False
 
+# centralized logger
+def xHWT_log(message):
+    log('Plugin (xHWT): '+message)
+    
 # Return plugin configs path (JSON)
 def getConfig():
     return get_config_dir() + pName + ".json"
@@ -192,4 +196,3 @@ def leave_party():
 # Plugin loaded
 log('Plugin: ' + pName + ' (By Virus) v' + pVersion + ' successfully loaded')
 loadConfigs()
-
