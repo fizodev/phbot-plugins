@@ -27,9 +27,6 @@ target_op_code = '0xB05A'
 target_data_part1 = '02 01 00'
 target_data_part2 = '02 27 1C'
 
-#target item ids to pickup
-target_item_names = ['Arena Coin']
-
 # booleans to track if the target op code and data are found
 found_op_code = False
 found_data_part1 = False
