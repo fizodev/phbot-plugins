@@ -12,7 +12,7 @@ pUrl = 'https://github.com/fizodev/phbot-plugins/tree/main/xHWT'
 # Initialize GUI
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'Welcome to xHWT plugin, it\'s a simple plugin to manage micro tasks for HWT daily entries. '+
-'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n\t- Pick+: Will target Arena coin for picking to avoid losing any drops by bot glitches.'+
+'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n'+
 '\n\n You have to be using the HWT scripts from the repository here (https://github.com/fizodev/phbot-plugins). '+
 '\n\n Developed by ViRUS (Legion Online | Shadows <3)',
 6, 10)
@@ -26,9 +26,6 @@ pluginEnabled = False
 target_op_code = '0xB05A'
 target_data_part1 = '02 01 00'
 target_data_part2 = '02 27 1C'
-
-#target item ids to pickup
-target_item_names = ['Arena Coin']
 
 # booleans to track if the target op code and data are found
 found_op_code = False
@@ -84,33 +81,6 @@ def cbxEnabled_checked(checked):
     pluginEnabled = checked
     saveConfigs()
     xHWT_log("The plugin has been " + ("enabled" if checked else "disabled"))
-
-# Called every 500ms
-def event_loop():
-    # Only process items if plugin is enabled
-    if not pluginEnabled:
-        return
-
-    # get list of items around available for pickup
-    items = get_drops()
-    # loop through the dictionary items (key-value pairs)
-    for item_id, item_data in items.items():
-        # check if the item id is in the target item ids list
-        current_item_name = item_data['name']
-        if current_item_name in target_item_names:
-            # pickup the item
-            xHWT_log(f"Picking up item: {current_item_name}")
-            pickup_item(item_id)
-            # Break the loop after picking up the first item
-            break
-
-# pickup the item
-def pickup_item(item_id):
-    # Pack item ID as little-endian unsigned int
-    id_bytes = struct.pack('<I', item_id)
-    # Create packet: header + first 3 bytes of item_id + trailer
-    data = bytearray(b'\x01\x02\x01') + id_bytes[:3] + bytearray(b'\x00')
-    inject_joymax(0x7074, data, True)
 
 # All packets received from game server will be passed to this function
 def handle_joymax(opcode, data):
@@ -195,7 +165,7 @@ def skip_existing_run_method_2():
         # walk away
         xHWT_log('Walking away to -11642,-3278')
         Timer(1.0, move_away, ()).start()
-        # leave the party after 30 seconds
+        # leave the party after 40 seconds
         Timer(40.0, leave_party, ()).start()
         # Add delay before starting the bot again (31 seconds)
         Timer(41.0, start_bot, ()).start()
@@ -210,5 +180,5 @@ def leave_party():
     inject_joymax(0x7061, bytearray(), True)
 
 # Plugin loaded
-log('Plugin: ' + pName + ' (By Virus) v' + pVersion + ' successfully loaded')
+log('Plugin: ' + pName + ' (by ViRUS) v' + pVersion + ' successfully loaded')
 loadConfigs()
