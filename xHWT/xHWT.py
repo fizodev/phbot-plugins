@@ -12,7 +12,7 @@ pUrl = 'https://github.com/fizodev/phbot-plugins/tree/main/xHWT'
 # Initialize GUI
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'Welcome to xHWT plugin, it\'s a simple plugin to manage micro tasks for HWT daily entries. '+
-'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n\t- Pick+: Will target Arena coin for picking to avoid losing any drops by bot glitches.'+
+'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n'+
 '\n\n You have to be using the HWT scripts from the repository here (https://github.com/fizodev/phbot-plugins). '+
 '\n\n Developed by ViRUS (Legion Online | Shadows <3)',
 6, 10)
