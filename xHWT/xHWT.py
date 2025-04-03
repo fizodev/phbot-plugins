@@ -12,7 +12,7 @@ pUrl = 'https://github.com/fizodev/phbot-plugins/tree/main/xHWT'
 # Initialize GUI
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'Welcome to xHWT plugin, it\'s a simple plugin to manage micro tasks for HWT daily entries. '+
-'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n'+
+'\n\n It will do the following: \n\t- Skip Run: Will skip the existing run if you reach the max entries limit.\n\t- Disconnect: Will disconnect you if you reach the max entries limit 6 times.'+
 '\n\n You have to be using the HWT scripts from the repository here (https://github.com/fizodev/phbot-plugins). '+
 '\n\n Developed by ViRUS (Legion Online | Shadows <3)',
 6, 10)
@@ -22,15 +22,21 @@ lblInfo = QtBind.createLabel(gui, 'Welcome to xHWT plugin, it\'s a simple plugin
 cbxEnabled = QtBind.createCheckBox(gui, 'cbxEnabled_checked', 'Enable plugin', 6, 170)
 pluginEnabled = False
 
-# target OP codes for max entries
-target_op_code = '0xB05A'
-target_data_part1 = '02 01 00'
-target_data_part2 = '02 27 1C'
+# OP code for HWT
+hwt_op_code = '0xB05A' # refactor this to be integer instead of hex string
+# a packet that is received if the char in party and ready to enter the HWT
+hwt_response_ok = '02 01 00'
+hwt_response_ok_received = False
+# a packet that is received if the char in party and reached the max entries for the day
+hwt_response_max_entries = '02 27 1C'
+# a packet that is received if the char in party and just entered the HWT
+hwt_response_entered = '01'
+# a packet that is received if the char not in party and can not enter the HWT
+hwt_response_not_in_party = '02 2A 1C'
 
-# booleans to track if the target op code and data are found
-found_op_code = False
-found_data_part1 = False
-found_data_part2 = False
+# a counter to track how many times we reached the max entries, and make action if it's equal to 6 times
+# the counter will be reset to 0 if the character entered the HWT
+max_entries_reached_counter = 0
 
 # centralized logger
 def xHWT_log(message):
@@ -85,7 +91,6 @@ def cbxEnabled_checked(checked):
 # All packets received from game server will be passed to this function
 def handle_joymax(opcode, data):
     if pluginEnabled:
-        global found_op_code, found_data_part1, found_data_part2
         # Format the opcode as a hexadecimal string
         opcode_hex = '0x{:02X}'.format(opcode)
 
@@ -95,24 +100,43 @@ def handle_joymax(opcode, data):
         else:
             data_hex = "None"
 
-        if opcode_hex == target_op_code:
-            found_op_code = True
-            # Check if the target data part 1 is found
-            if target_data_part1 in data_hex:
-                found_data_part1 = True
-            # Check if the target data part 2 is found
-            if target_data_part2 in data_hex:
-                found_data_part2 = True
-            # If both target data parts are found, print a message
-            if found_data_part1 and found_data_part2:
-                xHWT_log("Max entries reached. Skipping existing run...")
-                # Reset the flags
-                found_op_code = False
-                found_data_part1 = False
-                found_data_part2 = False
-                skip_existing_run_method_2()
+        if opcode_hex == hwt_op_code:
+            handle_hwt_packet(data_hex)
 
     return True
+
+def handle_hwt_packet(data_hex):
+    global max_entries_reached_counter, hwt_response_ok_received
+
+    if hwt_response_not_in_party in data_hex:
+        xHWT_log('You are not in party, please join a party to enter the HWT.')
+        return
+
+    # Check if the packet is the HWT response
+    if hwt_response_ok in data_hex:
+        hwt_response_ok_received = True
+        return
+
+    if hwt_response_entered in data_hex and hwt_response_ok_received:
+        max_entries_reached_counter = 0
+        hwt_response_ok_received = False
+        xHWT_log('You have entered the HWT. Resetting the counter.')
+        return
+
+    if hwt_response_max_entries in data_hex and hwt_response_ok_received:
+        hwt_response_ok_received = False
+        max_entries_reached_counter += 1
+        xHWT_log(
+            f"Max entries reached for this level. Skipping existing run. Counting {max_entries_reached_counter} of 6 times.")
+        # check if the counter reached 6 times
+        if max_entries_reached_counter >= 6:
+            # reset the counter and disconnect
+            max_entries_reached_counter = 0
+            xHWT_log('Max entries reached 6 or more times. Disconnecting...')
+            disconnect()
+        else:
+            # skip the existing run by stopping the bot and walking away and starting again
+            skip_existing_run_method_2()
 
 # skip the existing run by switching to the next script
 def skip_existing_run_method_1():
