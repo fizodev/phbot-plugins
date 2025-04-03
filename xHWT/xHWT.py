@@ -109,7 +109,7 @@ def handle_hwt_packet(data_hex):
     global max_entries_reached_counter, hwt_response_ok_received
 
     if hwt_response_not_in_party in data_hex:
-        xHWT_log('You are not in party, please join a party to enter the HWT.')
+        xHWT_log('You are not in party.')
         return
 
     # Check if the packet is the HWT response
@@ -136,7 +136,7 @@ def handle_hwt_packet(data_hex):
             disconnect()
         else:
             # skip the existing run by stopping the bot and walking away and starting again
-            skip_existing_run_method_2()
+            skip_existing_run_method_1()
 
 # skip the existing run by switching to the next script
 def skip_existing_run_method_1():
