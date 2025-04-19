@@ -126,8 +126,7 @@ def handle_hwt_packet(data_hex):
     if hwt_response_max_entries in data_hex and hwt_response_ok_received:
         hwt_response_ok_received = False
         max_entries_reached_counter += 1
-        xHWT_log(
-            f"Max entries reached for this level. Skipping existing run. Counting {max_entries_reached_counter} of 6 times.")
+        xHWT_log("Max entries reached for this level. Skipping existing run...")
         # check if the counter reached 6 times
         if max_entries_reached_counter >= 6:
             # reset the counter and disconnect
@@ -141,8 +140,8 @@ def handle_hwt_packet(data_hex):
 # skip the existing run by switching to the next script
 def skip_existing_run_method_1():
     # stop the bot
+    xHWT_log('Stopping bot...')
     if stop_bot():
-        xHWT_log('Stopping bot...')
         # get the current training script
         current_script = get_training_area()['path']
         xHWT_log('Current training script: ' + current_script)
