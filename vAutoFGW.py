@@ -552,15 +552,6 @@ def joined_game():
 # All packets received from game server will be passed to this function
 # Returning True will keep the packet and False will not forward it to the game client
 def handle_joymax(opcode, data):
-	# SERVER_DIMENSIONAL_INVITATION_REQUEST
-	if opcode == 0x751A:
-		if QtBind.isChecked(gui,cbxAcceptForgottenWorld):
-			# Create packet response
-			packet = data[:4] # Request ID
-			packet += b'\x00\x00\x00\x00' # unknown ID
-			packet += b'\x01' # Accept flag
-			inject_joymax(0x751C,packet,False)
-			log('Plugin: Forgotten World invitation accepted!')
 	# SERVER_INVENTORY_ITEM_USE
 	elif opcode == 0xB04C:
 		# Just check recent item used to keep it simple
