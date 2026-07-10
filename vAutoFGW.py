@@ -16,10 +16,10 @@ dimensionalItemActivated = None
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
-lblInfo = QtBind.createLabel(gui, 'vAutoFGW automatically uses and enters Dimensional Holes for the Forgotten World (FGW).\n'
-                             'It also triggers the bot to auto-start 5.0 seconds after teleporting into the FGW spawn coordinates,\n'
-                             'provided the current active bot profile matches the configured profile (default: "FGW").\n\n'
-                             'by H Y P E R V I S O R', 10, 10)
+lblInfo = QtBind.createLabel(gui, 'vAutoFGW automatically uses and enters Dimensional Holes for the Forgotten World (FGW).\n\n'
+                             'It also triggers the bot to auto-start 5.0 seconds after teleporting into the FGW spawn coordinates,\n\n'
+                             'provided the current active bot profile matches the configured profile (default: "FGW").\n\n\n'
+                             'By: H Y P E R V I S O R', 10, 10)
 
 # Calc the distance from point A to B
 def GetDistance(ax, ay, bx, by):
