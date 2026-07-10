@@ -324,102 +324,9 @@ def ListContains(text,lst):
 def QtBind_ItemsContains(text,lst):
 	return ListContains(text,QtBind.getItems(gui,lst))
 
-# Attacking mobs using all configs from bot
-def AttackMobs(wait,isAttacking,position,radius):
-	count = getMobCount(position,radius)
-	if count > 0:
-		# Start to kill mobs using bot
-		if not isAttacking:
-			start_bot()
-			log("Plugin: Starting to kill ("+str(count)+") mobs at this area. Radius: "+(str(radius) if radius != None else "Max."))
-		# Check if there is not mobs to continue script
-		Timer(wait,AttackMobs,[wait,True,position,radius]).start()
-	else:
-		log("Plugin: All mobs killed!")
-		# Waits for pickable drops from pick filter database
-		conn = GetFilterConnection()
-		cursor = conn.cursor()
-		WaitPickableDrops(cursor)
-		conn.close()
-		# All mobs killed, stop botting
-		stop_bot()
-		# Setting training area far away. The bot should continue where he was at the script
-		set_training_position(0,0,0,0)
-		# Wait for bot to calm down and move back to the starting point
-		log("Plugin: Getting back to the script...")
-		Timer(2.5,move_to,[position['x'],position['y'],position['z']]).start()
-		# give it some time to reach the movement
-		Timer(5.0,start_bot).start()
-
-# Count all mobs around your character (60 or more it's the max. range I think)
-def getMobCount(position,radius):
-	# Clear
-	QtBind.clear(gui,lstMonsterCounter)
-	QtBind.append(gui,lstMonsterCounter,'Name (Type)') # Header
-	count = 0
-	# Get my position to calc radius
-	p = position if radius != None else None
-	# Check all mob around
-	monsters = get_monsters()
-	if monsters:
-		for key, mob in monsters.items():
-			# Ignore if this mob type is found
-			if mob['type'] in lstIgnore:
-				continue
-			# Only count setup
-			if len(lstOnlyCount) > 0:
-				# If is not in only count, skip it
-				if not mob['type'] in lstOnlyCount:
-					continue
-			# Ignore mob names
-			elif ListContains(mob['name'],lstMobsData):
-				continue
-			# Checking radius
-			if radius != None:
-				if round(GetDistance(p['x'], p['y'],mob['x'],mob['y']),2) > radius:
-					continue
-			# Adding GUI for a complete UX
-			QtBind.append(gui,lstMonsterCounter,mob['name']+' ('+str(mob['type'])+')')
-			count+=1
-	return count
-
 # Calc the distance from point A to B
 def GetDistance(ax,ay,bx,by):
 	return ((bx-ax)**2 + (by-ay)**2)**(0.5)
-
-# Create a database connection to config filter
-def GetFilterConnection():
-	# Path to the filter database
-	path = get_config_dir()+character_data['server']+'_'+character_data['name']+'.db3'
-	# Connect to db3
-	return sqlite3.connect(path)
-
-def IsPickable(filterCursor,ItemID):
-	# Check existence of pickable item by character
-	return filterCursor.execute('SELECT EXISTS(SELECT 1 FROM pickfilter WHERE id=? AND pick=1 LIMIT 1)',(ItemID,)).fetchone()[0]
-
-# Sleep the thread while waits for pickable drops
-def WaitPickableDrops(filterCursor,waiting=0):
-	# Time is over for waiting drops
-	if waiting >= WAIT_DROPS_DELAY_MAX:
-		log("Plugin: Timeout for picking up drops!")
-		return
-	# check if there is a pickable drop
-	drops = get_drops()
-	if drops:
-		# Check drops if someone is pickable
-		drop = None
-		for key in drops:
-			value = drops[key]
-			if IsPickable(filterCursor,value['model']):
-				drop = value
-				break
-		if drop:
-			log('Plugin: Waiting for picking up "'+drop['name']+'"...')
-			# wait 1s
-			sleep(1.0)
-			# Check again
-			WaitPickableDrops(filterCursor,waiting+1)
 
 # Returns the item information if is found
 def GetDimensionalHole(Name):
@@ -504,33 +411,6 @@ def GoDimensionalThread(Name):
 		log('Plugin: '+( '"'+Name+'"' if Name else 'Dimensional Hole')+' cannot be found at your inventory')
 
 # ______________________________ Events ______________________________ #
-
-# Attack all mobs around using the bot config. Ex: "AttackArea" or "AttackArea,75"
-# Will be using radius maximum (75 approx) as default
-def AttackArea(args):
-	# radius maximum as default
-	radius = None
-	if len(args) >= 2:
-		radius = round(float(args[1]),2)
-	# Check position
-	p = get_position()
-	# stop bot and kill mobs through bot
-	if getMobCount(p,radius) > 0:
-		# stop scripting
-		stop_bot()
-		# set automatically the training area
-		set_training_position(p['region'], p['x'], p['y'],p['z'])
-		# set automatically the radius to avoid setting conflict
-		if radius != None:
-			set_training_radius(radius)
-		else:
-			set_training_radius(100.0)
-		# start to kill mobs on other thread because interpreter lock
-		Timer(0.001,AttackMobs,[COUNT_MOBS_DELAY,False,p,radius]).start()
-	# otherwise continue normally
-	else:
-		log("Plugin: No mobs at this area. Radius: "+(str(radius) if radius != None else "Max."))
-	return 0
 
 # Use, select and enter to the dimensional forgotten world. 
 # Ex: "GoDimensional" or "GoDimensional,Dimension Hole (Flame Mountain-3 stars)"
