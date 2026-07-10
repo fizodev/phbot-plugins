@@ -141,5 +141,14 @@ def handle_joymax(opcode, data):
 			itemUsedByPlugin = None
 	return True
 
+# Called after teleporting
+def teleported():
+	p = get_position()
+	if p:
+		dist = GetDistance(p['x'], p['y'], 17992, 3827)
+		if dist < 50.0:
+			log("Plugin: Teleported inside FGW spawn area (Distance: %.1f). Starting bot in 5.0 seconds..." % dist)
+			Timer(5.0, start_bot).start()
+
 # Plugin loaded
 log('Plugin: ' + pName + ' v' + pVersion + ' succesfully loaded')
