@@ -14,15 +14,13 @@ pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/xAutoD
 # ______________________________ Initializing ______________________________ #
 
 DIMENSIONAL_COOLDOWN_DELAY = 7200 # seconds (2 hours)
-WAIT_DROPS_DELAY_MAX = 90 # seconds
+WAIT_DROPS_DELAY_MAX = 10 # seconds
 COUNT_MOBS_DELAY = 1.0 # seconds
-MAX_ATTACKING_TIME = 600 # seconds (10 minutes)
 
 # Globals
 character_data = None
 itemUsedByPlugin = None
 dimensionalItemActivated = None
-attackingTimeCounter = 0 # Used to count the time of attacking mobs
 
 # Graphic user interface
 gui = QtBind.init(__name__,pName)
@@ -329,15 +327,7 @@ def QtBind_ItemsContains(text,lst):
 
 # Attacking mobs using all configs from bot
 def AttackMobs(wait,isAttacking,position,radius):
-	global attackingTimeCounter
-	if isAttacking:
-		attackingTimeCounter+=1
 	count = getMobCount(position,radius)
-	if attackingTimeCounter >= MAX_ATTACKING_TIME:
-		log("Plugin: Attacking time exceeded ("+str(MAX_ATTACKING_TIME)+"s). Returning to town.")
-		count = 0
-		attackingTimeCounter = 0
-		use_return_scroll()
 	if count > 0:
 		# Start to kill mobs using bot
 		if not isAttacking:
@@ -347,7 +337,6 @@ def AttackMobs(wait,isAttacking,position,radius):
 		Timer(wait,AttackMobs,[wait,True,position,radius]).start()
 	else:
 		log("Plugin: All mobs killed!")
-		attackingTimeCounter = 0
 		# Waits for pickable drops from pick filter database
 		conn = GetFilterConnection()
 		cursor = conn.cursor()
@@ -502,7 +491,8 @@ def GoDimensionalThread(Name):
 		log('Plugin: Using "'+item['name']+'"...')
 		p = struct.pack('B',item['slot'])
 		locale = get_locale()
-		if locale == 56 or locale == 18: # TRSRO & (PROBABLY) iSRO
+
+		if locale in [56, 18, 61]: # TRSRO, iSRO, and VTC
 			p += b'\x30\x0C\x0C\x07'
 		else: #locale == 22: # vSRO
 			p += b'\x6C\x3E'
