@@ -461,9 +461,10 @@ def GetDimensionalPillarUID(Name):
 		for uid, npc in npcs.items():
 			# Try to check object model (Casually the dimensional match with the item model) 
 			item = get_item(npc['model'])
-			# Check if data is valid and the exact name
-			if item and item['name'] == Name:
-				return uid
+			# Check if data is valid and matching (exact or partial)
+			if item:
+				if item['name'] == Name or (Name and (Name.lower() in item['name'].lower() or item['name'].lower() in Name.lower())):
+					return uid
 	return 0
 
 # Select and enter to the dimensional hole specified
@@ -588,7 +589,7 @@ def handle_joymax(opcode, data):
 					dimensionalItemActivated = None
 				Timer(DIMENSIONAL_COOLDOWN_DELAY,DimensionalCooldown).start()
 				# Avoid locking the proxy thread
-				Timer(1.0,EnterToDimensional,[itemUsedByPlugin['name']]).start()
+				Timer(5.0,EnterToDimensional,[itemUsedByPlugin['name']]).start()
 			else:
 				log('Plugin: "'+itemUsedByPlugin['name']+'" cannot be opened')
 			# Stop checking item used
