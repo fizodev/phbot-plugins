@@ -80,7 +80,7 @@ def EnterToDimensional(Name):
 	log('Plugin: "' + Name + '" cannot be found around you!')
 
 # Avoid interpreter lock
-def GoDimensionalThread(Name):
+def GoFGWThread(Name):
 	# Check if dimensional still opened
 	if dimensionalItemActivated:
 		Name = dimensionalItemActivated['name']
@@ -108,8 +108,8 @@ def GoDimensionalThread(Name):
 		log('Plugin: ' + ('"' + Name + '"' if Name else 'Dimensional Hole') + ' cannot be found at your inventory')
 
 # Use, select and enter to the dimensional forgotten world. 
-# Ex: "GoDimensional" or "GoDimensional,Dimension Hole (Flame Mountain-3 stars)"
-def GoDimensional(args):
+# Ex: "GoFGW" or "GoFGW,Dimension Hole (Flame Mountain-3 stars)"
+def GoFGW(args):
 	if get_profile() != REQUIRED_PROFILE:
 		return 0
 	# Stop bot while doing the whole process
@@ -119,7 +119,7 @@ def GoDimensional(args):
 	if len(args) > 1:
 		name = args[1]
 	# Avoid lock
-	Timer(0.001, GoDimensionalThread, [name]).start()
+	Timer(0.001, GoFGWThread, [name]).start()
 	return 0
 
 # All packets received from game server will be passed to this function
