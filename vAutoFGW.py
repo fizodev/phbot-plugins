@@ -8,6 +8,7 @@ pVersion = '1.0.0'
 pName = 'vAutoFGW'
 
 DIMENSIONAL_COOLDOWN_DELAY = 18000 # seconds (5 hours)
+REQUIRED_PROFILE = 'FGW'
 
 # Globals
 itemUsedByPlugin = None
@@ -105,6 +106,8 @@ def GoDimensionalThread(Name):
 # Use, select and enter to the dimensional forgotten world. 
 # Ex: "GoDimensional" or "GoDimensional,Dimension Hole (Flame Mountain-3 stars)"
 def GoDimensional(args):
+	if get_profile() != REQUIRED_PROFILE:
+		return 0
 	# Stop bot while doing the whole process
 	stop_bot()
 	# Check if the name has been set
@@ -118,6 +121,8 @@ def GoDimensional(args):
 # All packets received from game server will be passed to this function
 # Returning True will keep the packet and False will not forward it to the game client
 def handle_joymax(opcode, data):
+	if get_profile() != REQUIRED_PROFILE:
+		return True
 	# SERVER_INVENTORY_ITEM_USE
 	if opcode == 0xB04C:
 		# Just check recent item used to keep it simple
@@ -143,6 +148,8 @@ def handle_joymax(opcode, data):
 
 # Called after teleporting
 def teleported():
+	if get_profile() != REQUIRED_PROFILE:
+		return
 	p = get_position()
 	if p:
 		dist = GetDistance(p['x'], p['y'], 17992, 3827)
