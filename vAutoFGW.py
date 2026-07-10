@@ -7,13 +7,12 @@ import json
 import struct
 import os
 
-pVersion = '1.5.5'
-pName = 'xAutoDungeon'
-pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/xAutoDungeon.py'
+pVersion = '1.0.0'
+pName = 'vAutoFGW'
 
 # ______________________________ Initializing ______________________________ #
 
-DIMENSIONAL_COOLDOWN_DELAY = 7200 # seconds (2 hours)
+DIMENSIONAL_COOLDOWN_DELAY = 18000 # seconds (5 hours)
 WAIT_DROPS_DELAY_MAX = 10 # seconds
 COUNT_MOBS_DELAY = 1.0 # seconds
 
