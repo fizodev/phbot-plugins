@@ -18,8 +18,10 @@ cooldown_timer = 0
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
-lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n\n'
-                                 'it waits few seconds then teleports out to Hotan.\n\n\n'
+lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n'
+                                 'it waits few seconds then teleports out to Hotan.\n\n'
+                                 'Smart Movement: Every 1 minute, it scans the training area and moves the\n'
+                                 'character to the densest mob area if it has more mobs than the current spot.\n\n'
                                  'By: H Y P E R V I S O R', 10, 10)
 
 # Calculate the distance from point A to B
@@ -95,9 +97,12 @@ def event_loop():
 	if not get_botting():
 		return
 
+	log("Plugin: Starting Smart Movement density check...")
+
 	# Get training area info
 	area = get_training_area()
 	if not area or (area['x'] == 0 and area['y'] == 0) or area['radius'] <= 0:
+		log("Plugin: No training area or radius configured. Skipping scan.")
 		return
 
 	# Get character position
@@ -108,11 +113,13 @@ def event_loop():
 	# Only check if character is inside the training area
 	dist_to_center = GetDistance(char_pos['x'], char_pos['y'], area['x'], area['y'])
 	if dist_to_center > area['radius']:
+		log("Plugin: Character is outside the training area (distance: %.1f, radius: %.1f). Skipping scan." % (dist_to_center, area['radius']))
 		return
 
 	# Get monsters nearby
 	monsters = get_monsters()
 	if not monsters:
+		log("Plugin: No monsters found nearby. Skipping scan.")
 		return
 
 	# Filter monsters inside training area
@@ -123,7 +130,10 @@ def event_loop():
 			valid_monsters.append(mob)
 
 	if not valid_monsters:
+		log("Plugin: No monsters inside the training area. Skipping scan.")
 		return
+
+	log("Plugin: Found %d monsters inside the training area." % len(valid_monsters))
 
 	# 1. Count mobs near character's current position
 	DENSITY_RADIUS = 15.0 # Radius to define density / proximity
@@ -131,6 +141,8 @@ def event_loop():
 	for mob in valid_monsters:
 		if GetDistance(char_pos['x'], char_pos['y'], mob['x'], mob['y']) <= DENSITY_RADIUS:
 			current_mobs_count += 1
+
+	log("Plugin: Current position has %d mobs nearby." % current_mobs_count)
 
 	# 2. Find the spot with the highest density of mobs
 	best_mob = None
@@ -152,11 +164,14 @@ def event_loop():
 			if dist_to_curr < dist_to_best:
 				best_mob = mob
 
+	if best_mob:
+		log("Plugin: Densest spot found has %d mobs at (%.1f, %.1f)." % (max_density, best_mob['x'], best_mob['y']))
+
 	# 3. Move if another spot has higher density and is at a reasonable distance (> 5.0 units)
 	if best_mob and max_density > current_mobs_count:
 		dist_to_mob = GetDistance(char_pos['x'], char_pos['y'], best_mob['x'], best_mob['y'])
 		if dist_to_mob > 5.0:
-			log("Plugin: Current spot has %d mobs. Found dense cluster of %d mobs at (%.1f, %.1f). Moving to cluster..." % (current_mobs_count, max_density, best_mob['x'], best_mob['y']))
+			log("Plugin: Moving towards dense cluster (current spot: %d mobs vs cluster: %d mobs at %.1f units away)." % (current_mobs_count, max_density, dist_to_mob))
 			stop_bot()
 			target_x = best_mob['x']
 			target_y = best_mob['y']
@@ -165,6 +180,10 @@ def event_loop():
 			# Perform movement (using current Z coordinates as default if Z is not in mob data)
 			target_z = best_mob.get('z', char_pos['z'])
 			move_to(target_x, target_y, target_z)
+		else:
+			log("Plugin: Densest cluster is too close (%.1f units). Skipping movement." % dist_to_mob)
+	else:
+		log("Plugin: Current spot is already the densest or equal (current: %d mobs, max cluster: %d mobs). Skipping movement." % (current_mobs_count, max_density))
 
 # Plugin loaded
 log('Plugin: ' + pName + ' v' + pVersion + ' successfully loaded')
