@@ -75,8 +75,8 @@ def event_loop():
 		if char_pos:
 			dist = GetDistance(char_pos['x'], char_pos['y'], target_x, target_y)
 			move_timeout += 500
-			# If reached target (dist <= 3.0) or timed out (2 seconds)
-			if dist <= 3.0 or move_timeout >= 2000:
+			# If reached target (dist <= 3.0) or timed out (6 seconds)
+			if dist <= 3.0 or move_timeout >= 6000:
 				log("Plugin: Reached target dense spot or timed out.")
 				moving_to_dense_spot = False
 			else:
