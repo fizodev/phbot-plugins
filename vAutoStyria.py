@@ -31,7 +31,6 @@ def GetDistance(ax, ay, bx, by):
 
 # Injects the second packet to the server
 def inject_second_packet():
-	log("Plugin: Injecting second packet (0x705A)")
 	# Opcode: 0x705A, Data: 14 00 00 00 02 05 00 00 00
 	opcode = 0x705A
 	data = struct.pack('I', 20) + struct.pack('B', 2) + struct.pack('I', 5)
@@ -39,7 +38,6 @@ def inject_second_packet():
 
 # Injects the first packet to the server and schedules the second packet
 def inject_first_packet():
-	log("Plugin: Injecting first packet (0x7C45)")
 	# Opcode: 0x7C45, Data: 14 00 00 00
 	opcode = 0x7C45
 	data = struct.pack('I', 20)
