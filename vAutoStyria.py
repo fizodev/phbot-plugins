@@ -13,6 +13,7 @@ check_timer = 0
 cooldown_timer = 0
 skip_first_scan = True
 original_training_area = None
+shifting_training_area = False
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
@@ -34,6 +35,12 @@ def restore_original_training_area():
 		if not set_training_area("Styria"):
 			log("Plugin: Error - Original training area 'Styria' not found in phBot list!")
 		original_training_area = None
+
+# Restores shifting state and starts botting
+def do_start_bot():
+	global shifting_training_area
+	start_bot()
+	shifting_training_area = False
 
 # Injects the second packet to the server
 def inject_second_packet():
@@ -74,16 +81,17 @@ def finished():
 
 # Called every 500ms
 def event_loop():
-	global check_timer, cooldown_timer, skip_first_scan, original_training_area
+	global check_timer, cooldown_timer, skip_first_scan, original_training_area, shifting_training_area
 
 	if get_profile() != REQUIRED_PROFILE:
 		return
 
 	# We must be botting to check density and move (reset timer if not botting to delay by 1 min on start)
 	if get_status() != 'botting':
-		restore_original_training_area()
+		if not shifting_training_area:
+			restore_original_training_area()
+			skip_first_scan = True
 		check_timer = 0
-		skip_first_scan = True
 		return
 
 	# Check every 1 minute (60,000 ms)
@@ -188,12 +196,15 @@ def event_loop():
 				else:
 					log("Plugin: Error - Temporary training area 'temp' not found in phBot list! Cannot shift position.")
 
+			# Set the shifting flag to prevent event_loop from restoring original area during stop
+			shifting_training_area = True
+
 			# Schedule training area change after 1.0 second
 			target_z = best_mob.get('z', char_pos['z'])
 			Timer(1.0, do_shift, [best_mob['region'], best_mob['x'], best_mob['y'], target_z]).start()
 			
 			# Schedule bot start after 2.0 seconds
-			Timer(2.0, start_bot).start()
+			Timer(2.0, do_start_bot).start()
 		else:
 			log("Plugin: Densest cluster is too close (%.1f units). Skipping shift." % dist_to_mob)
 	else:
