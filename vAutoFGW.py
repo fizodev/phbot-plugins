@@ -49,13 +49,29 @@ def GetDimensionalHole(Name):
 def GetDimensionalPillarUID(Name):
 	# Load all talking objects around
 	npcs = get_npcs()
+	log('Plugin: Found npcs: %s' % npcs)
 	if npcs:
+		char_data = get_character_data()
+		char_name = char_data.get('name') if char_data else None
 		for uid, npc in npcs.items():
+			# Try matching the item ID that spawned the NPC (most reliable)
+			item_id = npc.get('item')
+			if item_id:
+				item_data = get_item(item_id)
+				if item_data:
+					if item_data['name'] == Name or (Name and (Name.lower() in item_data['name'].lower() or item_data['name'].lower() in Name.lower())):
+						return uid
+
 			# Try to check object model (Casually the dimensional match with the item model) 
 			item = get_item(npc['model'])
 			# Check if data is valid and matching (exact or partial)
 			if item:
 				if item['name'] == Name or (Name and (Name.lower() in item['name'].lower() or item['name'].lower() in Name.lower())):
+					return uid
+
+			# Fallback: Check if the NPC was spawned by our character and represents a FGW portal
+			if char_name and npc.get('owner') == char_name:
+				if npc.get('name') == 'Gap of Dimensions' or npc.get('servername') == 'INS_QUEST_TELEPORT':
 					return uid
 	return 0
 
