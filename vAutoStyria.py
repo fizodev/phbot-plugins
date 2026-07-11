@@ -180,13 +180,20 @@ def event_loop():
 		if dist_to_mob > 5.0:
 			log("Plugin: Switching to training area 'temp' (current spot: %d mobs vs cluster: %d mobs at %.1f units away)." % (current_mobs_count, max_density, dist_to_mob))
 			stop_bot()
-			# Natively switch to 'temp' training area and update its coordinates
-			if set_training_area("temp"):
-				target_z = best_mob.get('z', char_pos['z'])
-				set_training_position(best_mob['region'], best_mob['x'], best_mob['y'], target_z)
-			else:
-				log("Plugin: Error - Temporary training area 'temp' not found in phBot list! Cannot shift position.")
-			start_bot()
+			
+			# Helper function to change training area and position with delay
+			def do_shift(region, x, y, z):
+				if set_training_area("temp"):
+					set_training_position(region, x, y, z)
+				else:
+					log("Plugin: Error - Temporary training area 'temp' not found in phBot list! Cannot shift position.")
+
+			# Schedule training area change after 1.0 second
+			target_z = best_mob.get('z', char_pos['z'])
+			Timer(1.0, do_shift, [best_mob['region'], best_mob['x'], best_mob['y'], target_z]).start()
+			
+			# Schedule bot start after 2.0 seconds
+			Timer(2.0, start_bot).start()
 		else:
 			log("Plugin: Densest cluster is too close (%.1f units). Skipping shift." % dist_to_mob)
 	else:
