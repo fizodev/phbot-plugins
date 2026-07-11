@@ -40,7 +40,8 @@ def teleported():
 	if p:
 		dist = GetDistance(p['x'], p['y'], -20161, -177)
 		if dist <= 10.0:
-			log("Plugin: Teleported near target position (-20161, -177) with distance %.1f." % dist)
+			log("Plugin: Teleported outside Styria Room (confidence: with distance %.1f.) Stopping bot and teleporting out..." % dist)
+			stop_bot()
 			# Schedule the first packet with 2.0 seconds delay
 			Timer(2.0, inject_first_packet).start()
 
