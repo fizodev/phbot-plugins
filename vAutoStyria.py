@@ -25,6 +25,12 @@ lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If charact
                                  'character to the densest mob area if it has more mobs than the current spot.\n\n'
                                  'By: H Y P E R V I S O R', 10, 10)
 
+cbxSmartMovement = QtBind.createCheckBox(gui, 'cbx_smart_movement_clicked', 'Enable Smart Movement', 10, 110)
+QtBind.setChecked(gui, cbxSmartMovement, True)
+
+def cbx_smart_movement_clicked(checked):
+	pass
+
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
 	return ((bx - ax) ** 2 + (by - ay) ** 2) ** (0.5)
@@ -65,6 +71,13 @@ def event_loop():
 	global check_timer, skip_first_scan
 
 	if get_profile() != REQUIRED_PROFILE:
+		return
+
+	# If Smart Movement GUI checkbox is not checked, disable logic and abort active movements
+	if not QtBind.isChecked(gui, cbxSmartMovement):
+		moving_to_dense_spot = False
+		check_timer = 0
+		skip_first_scan = True
 		return
 
 	# If we are currently moving to a dense spot
