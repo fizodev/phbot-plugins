@@ -3,10 +3,18 @@ import QtBind
 from threading import Timer
 import struct
 
-pVersion = '1.0.0'
+pVersion = '1.1.0'
 pName = 'vAutoStyria'
 
 REQUIRED_PROFILE = 'Styria'
+
+# State variables for smart movement
+moving_to_dense_spot = False
+target_x = 0.0
+target_y = 0.0
+move_timeout = 0
+check_timer = 0
+cooldown_timer = 0
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
@@ -49,6 +57,114 @@ def teleported():
 			Timer(2.0, stop_bot).start()
 			# Schedule the first packet with 2.0 seconds delay
 			Timer(3.0, inject_first_packet).start()
+
+# Called every 500ms
+def event_loop():
+	global moving_to_dense_spot, target_x, target_y, move_timeout
+	global check_timer, cooldown_timer
+
+	if get_profile() != REQUIRED_PROFILE:
+		return
+
+	# If we are currently in the middle of a smart movement
+	if moving_to_dense_spot:
+		char_pos = get_position()
+		if char_pos:
+			dist = GetDistance(char_pos['x'], char_pos['y'], target_x, target_y)
+			move_timeout += 500
+			# If reached target or timed out (10 seconds)
+			if dist <= 3.0 or move_timeout >= 10000:
+				log("Plugin: Reached target or timed out. Resuming attacking (starting bot).")
+				start_bot()
+				moving_to_dense_spot = False
+				cooldown_timer = 5000 # 5 seconds cooldown before next check
+		return
+
+	# Decrement cooldown timer if active
+	if cooldown_timer > 0:
+		cooldown_timer -= 500
+		return
+
+	# Check every 1 minute (60,000 ms)
+	check_timer += 500
+	if check_timer < 60000:
+		return
+	check_timer = 0
+
+	# We must be botting to check density and move
+	if not get_botting():
+		return
+
+	# Get training area info
+	area = get_training_area()
+	if not area or (area['x'] == 0 and area['y'] == 0) or area['radius'] <= 0:
+		return
+
+	# Get character position
+	char_pos = get_position()
+	if not char_pos:
+		return
+
+	# Only check if character is inside the training area
+	dist_to_center = GetDistance(char_pos['x'], char_pos['y'], area['x'], area['y'])
+	if dist_to_center > area['radius']:
+		return
+
+	# Get monsters nearby
+	monsters = get_monsters()
+	if not monsters:
+		return
+
+	# Filter monsters inside training area
+	valid_monsters = []
+	for key, mob in monsters.items():
+		mob_dist_to_center = GetDistance(mob['x'], mob['y'], area['x'], area['y'])
+		if mob_dist_to_center <= area['radius']:
+			valid_monsters.append(mob)
+
+	if not valid_monsters:
+		return
+
+	# 1. Count mobs near character's current position
+	DENSITY_RADIUS = 15.0 # Radius to define density / proximity
+	current_mobs_count = 0
+	for mob in valid_monsters:
+		if GetDistance(char_pos['x'], char_pos['y'], mob['x'], mob['y']) <= DENSITY_RADIUS:
+			current_mobs_count += 1
+
+	# 2. Find the spot with the highest density of mobs
+	best_mob = None
+	max_density = 0
+
+	for mob in valid_monsters:
+		density = 0
+		for other_mob in valid_monsters:
+			if GetDistance(mob['x'], mob['y'], other_mob['x'], other_mob['y']) <= DENSITY_RADIUS:
+				density += 1
+		
+		if density > max_density:
+			max_density = density
+			best_mob = mob
+		elif density == max_density and best_mob:
+			# Tie-breaker: choose the mob closer to the character
+			dist_to_curr = GetDistance(char_pos['x'], char_pos['y'], mob['x'], mob['y'])
+			dist_to_best = GetDistance(char_pos['x'], char_pos['y'], best_mob['x'], best_mob['y'])
+			if dist_to_curr < dist_to_best:
+				best_mob = mob
+
+	# 3. Move if another spot has higher density and is at a reasonable distance (> 5.0 units)
+	if best_mob and max_density > current_mobs_count:
+		dist_to_mob = GetDistance(char_pos['x'], char_pos['y'], best_mob['x'], best_mob['y'])
+		if dist_to_mob > 5.0:
+			log("Plugin: Current spot has %d mobs. Found dense cluster of %d mobs at (%.1f, %.1f). Moving to cluster..." % (current_mobs_count, max_density, best_mob['x'], best_mob['y']))
+			stop_bot()
+			target_x = best_mob['x']
+			target_y = best_mob['y']
+			moving_to_dense_spot = True
+			move_timeout = 0
+			# Perform movement (using current Z coordinates as default if Z is not in mob data)
+			target_z = best_mob.get('z', char_pos['z'])
+			move_to(target_x, target_y, target_z)
 
 # Plugin loaded
 log('Plugin: ' + pName + ' v' + pVersion + ' successfully loaded')
