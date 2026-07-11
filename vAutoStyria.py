@@ -15,6 +15,7 @@ target_y = 0.0
 move_timeout = 0
 check_timer = 0
 cooldown_timer = 0
+skip_first_scan = True
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
@@ -63,7 +64,7 @@ def teleported():
 # Called every 500ms
 def event_loop():
 	global moving_to_dense_spot, target_x, target_y, move_timeout
-	global check_timer, cooldown_timer
+	global check_timer, cooldown_timer, skip_first_scan
 
 	if get_profile() != REQUIRED_PROFILE:
 		return
@@ -90,6 +91,7 @@ def event_loop():
 	# We must be botting to check density and move (reset timer if not botting to delay by 1 min on start)
 	if get_status() != 'botting':
 		check_timer = 0
+		skip_first_scan = True
 		return
 
 	# Check every 1 minute (60,000 ms)
@@ -97,6 +99,12 @@ def event_loop():
 	if check_timer < 60000:
 		return
 	check_timer = 0
+
+	# Skip the very first scan when botting starts
+	if skip_first_scan:
+		skip_first_scan = False
+		log("Plugin: Skipping the first density scan to allow character to fight at the initial landing spot.")
+		return
 
 	log("Plugin: Starting Smart Movement density check...")
 
