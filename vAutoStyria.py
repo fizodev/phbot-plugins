@@ -11,7 +11,8 @@ REQUIRED_PROFILE = 'Styria'
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n\n'
-                                 'it waits few seconds then teleports out to Hotan.', 10, 10)
+                                 'it waits few seconds then teleports out to Hotan.\n\n\n'
+                                 'By: H Y P E R V I S O R', 10, 10)
 
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
