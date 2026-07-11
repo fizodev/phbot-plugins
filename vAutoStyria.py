@@ -6,6 +6,8 @@ import struct
 pVersion = '1.0.0'
 pName = 'vAutoStyria'
 
+REQUIRED_PROFILE = 'Styria'
+
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found near (-20161, -177),\n'
@@ -36,6 +38,8 @@ def inject_first_packet():
 
 # Called after teleporting
 def teleported():
+	if get_profile() != REQUIRED_PROFILE:
+		return
 	p = get_position()
 	if p:
 		dist = GetDistance(p['x'], p['y'], -20161, -177)
