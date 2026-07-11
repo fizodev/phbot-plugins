@@ -49,7 +49,6 @@ def GetDimensionalHole(Name):
 def GetDimensionalPillarUID(Name):
 	# Load all talking objects around
 	npcs = get_npcs()
-	log('Plugin: Found npcs: %s' % npcs)
 	if npcs:
 		char_data = get_character_data()
 		char_name = char_data.get('name') if char_data else None
