@@ -10,8 +10,8 @@ REQUIRED_PROFILE = 'Styria'
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
-lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found near (-20161, -177),\n'
-                                 'it waits 2 seconds then injects two server packets separated by 1 second.', 10, 10)
+lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n\n'
+                                 'it waits few seconds then teleports out to Hotan.', 10, 10)
 
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
@@ -45,9 +45,9 @@ def teleported():
 		dist = GetDistance(p['x'], p['y'], -20161, -177)
 		if dist <= 10.0:
 			log("Plugin: Teleported outside Styria Room (confidence: with distance %.1f.) Stopping bot and teleporting out..." % dist)
-			stop_bot()
+			Timer(2.0, stop_bot).start()
 			# Schedule the first packet with 2.0 seconds delay
-			Timer(2.0, inject_first_packet).start()
+			Timer(3.0, inject_first_packet).start()
 
 # Plugin loaded
 log('Plugin: ' + pName + ' v' + pVersion + ' successfully loaded')
