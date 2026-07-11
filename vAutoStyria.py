@@ -87,15 +87,16 @@ def event_loop():
 		cooldown_timer -= 500
 		return
 
+	# We must be botting to check density and move (reset timer if not botting to delay by 1 min on start)
+	if get_status() != 'botting':
+		check_timer = 0
+		return
+
 	# Check every 1 minute (60,000 ms)
 	check_timer += 500
 	if check_timer < 60000:
 		return
 	check_timer = 0
-
-	# We must be botting to check density and move
-	if not get_botting():
-		return
 
 	log("Plugin: Starting Smart Movement density check...")
 
