@@ -148,20 +148,23 @@ def AttackAreaFor(args):
 	set_training_position(p['region'], p['x'], p['y'], p['z'])
 	set_training_radius(radius)
 	
-	# Start attacking
-	start_bot()
-	
 	global attack_for_session_id
 	attack_for_session_id += 1
 	current_session = attack_for_session_id
 	
-	# Start the loop timer
-	Timer(1.0, AttackAreaFor_Loop, [1.0, duration, p, radius, current_session]).start()
+	# Start the loop timer immediately on a background thread to allow stop_bot state transition to settle
+	Timer(0.5, AttackAreaFor_Loop, [0.0, duration, p, radius, current_session, True]).start()
 	return 0
 
-def AttackAreaFor_Loop(elapsed_time, total_time, position, radius, session_id):
+def AttackAreaFor_Loop(elapsed_time, total_time, position, radius, session_id, first_run=False):
 	global attack_for_session_id
 	if session_id != attack_for_session_id:
+		return
+		
+	if first_run:
+		# Execute start_bot in background thread
+		start_bot()
+		Timer(1.0, AttackAreaFor_Loop, [1.0, total_time, position, radius, session_id, False]).start()
 		return
 		
 	# Check if duration reached
@@ -178,7 +181,7 @@ def AttackAreaFor_Loop(elapsed_time, total_time, position, radius, session_id):
 		return
 		
 	# Continue loop
-	Timer(1.0, AttackAreaFor_Loop, [elapsed_time + 1.0, total_time, position, radius, session_id]).start()
+	Timer(1.0, AttackAreaFor_Loop, [elapsed_time + 1.0, total_time, position, radius, session_id, False]).start()
 
 def finish_attack_area_for(position, session_id):
 	global attack_for_session_id
