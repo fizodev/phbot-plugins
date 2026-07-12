@@ -17,7 +17,7 @@ DEFAULT_COIN_LIMIT = 250
 teleporting_to_hotan = False
 
 # AttackAreaFor state and constants
-attack_for_running = False
+attack_for_session_id = 0
 COUNT_MOBS_DELAY = 1.0
 WAIT_DROPS_DELAY_MAX = 90
 
@@ -151,37 +151,42 @@ def AttackAreaFor(args):
 	# Start attacking
 	start_bot()
 	
-	global attack_for_running
-	attack_for_running = True
+	global attack_for_session_id
+	attack_for_session_id += 1
+	current_session = attack_for_session_id
 	
 	# Start the loop timer
-	Timer(1.0, AttackAreaFor_Loop, [1.0, duration, p, radius]).start()
+	Timer(1.0, AttackAreaFor_Loop, [1.0, duration, p, radius, current_session]).start()
 	return 0
 
-def AttackAreaFor_Loop(elapsed_time, total_time, position, radius):
-	global attack_for_running
-	if not attack_for_running:
+def AttackAreaFor_Loop(elapsed_time, total_time, position, radius, session_id):
+	global attack_for_session_id
+	if session_id != attack_for_session_id:
 		return
 		
 	# Check if duration reached
 	if elapsed_time >= total_time:
 		log("Plugin: AttackAreaFor duration of %.1f seconds has elapsed. Stopping attack." % total_time)
-		finish_attack_area_for(position)
+		finish_attack_area_for(position, session_id)
 		return
 		
 	# Check current mob count for early termination
 	mobs_count = getMobCount(position, radius)
 	if mobs_count == 0:
 		log("Plugin: All monsters killed. Stopping AttackAreaFor early.")
-		finish_attack_area_for(position)
+		finish_attack_area_for(position, session_id)
 		return
 		
 	# Continue loop
-	Timer(1.0, AttackAreaFor_Loop, [elapsed_time + 1.0, total_time, position, radius]).start()
+	Timer(1.0, AttackAreaFor_Loop, [elapsed_time + 1.0, total_time, position, radius, session_id]).start()
 
-def finish_attack_area_for(position):
-	global attack_for_running
-	attack_for_running = False
+def finish_attack_area_for(position, session_id):
+	global attack_for_session_id
+	if session_id != attack_for_session_id:
+		return
+		
+	# Invalidate the session
+	attack_for_session_id += 1
 	
 	# Stop botting
 	stop_bot()
@@ -278,7 +283,8 @@ def inject_first_packet():
 
 # Called after teleporting
 def teleported():
-	global teleporting_to_hotan
+	global teleporting_to_hotan, attack_for_session_id
+	attack_for_session_id += 1
 	if get_profile() != REQUIRED_PROFILE:
 		return
 	p = get_position()
