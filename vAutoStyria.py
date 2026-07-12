@@ -3,17 +3,21 @@ import QtBind
 from threading import Timer
 import struct
 
-pVersion = '2.2.0'
+pVersion = '3.0.0'
 pName = 'vAutoStyria'
 
 REQUIRED_PROFILE = 'Styria'
+DEFAULT_COIN_LIMIT = 250
 
 # Looping state
 teleporting_to_hotan = False
 
-# Checkbox handler
+# Checkbox handlers
 def cbxEnableLoop_checked(checked):
 	log("Plugin: Hotan looping has been " + ("enabled" if checked else "disabled"))
+
+def cbxIncreaseSleep_checked(checked):
+	log("Plugin: Arena Coins low sleeping increase has been " + ("enabled" if checked else "disabled"))
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
@@ -21,12 +25,76 @@ lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If charact
                                  'it waits few seconds then teleports out to Hotan.\n\n'
                                  'By: H Y P E R V I S O R', 10, 10)
 
-cbxEnableLoop = QtBind.createCheckBox(gui, 'cbxEnableLoop_checked', 'Enable Hotan Looping (5 min sleep)', 10, 75)
+cbxEnableLoop = QtBind.createCheckBox(gui, 'cbxEnableLoop_checked', 'Enable Hotan Looping', 10, 75)
 QtBind.setChecked(gui, cbxEnableLoop, True)
+
+lblMinSleep = QtBind.createLabel(gui, 'Min sleep time (minutes):', 10, 100)
+tbxMinSleep = QtBind.createLineEdit(gui, '5.0', 160, 97, 40, 20)
+
+cbxIncreaseSleep = QtBind.createCheckBox(gui, 'cbxIncreaseSleep_checked', 'Increase sleep if Arena Coins are low', 10, 125)
+QtBind.setChecked(gui, cbxIncreaseSleep, False)
+
+lblIncreaseMin = QtBind.createLabel(gui, 'Increase sleep to (min):', 25, 150)
+tbxIncreaseSleepMin = QtBind.createLineEdit(gui, '10.0', 160, 147, 40, 20)
+
+lblCoinLimit = QtBind.createLabel(gui, 'when Arena Coins <:', 215, 150)
+tbxArenaCoinLimit = QtBind.createLineEdit(gui, str(DEFAULT_COIN_LIMIT), 335, 147, 40, 20)
 
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
 	return ((bx - ax) ** 2 + (by - ay) ** 2) ** (0.5)
+
+# Helper to count total Arena Coins in inventory and pets
+def count_arena_coins():
+	total_coins = 0
+	# Inventory check
+	inventory = get_inventory()
+	if inventory and 'items' in inventory:
+		for item in inventory['items']:
+			if item and item.get('name') == 'Arena Coin':
+				total_coins += item.get('quantity', 0)
+	# Pets check
+	pets = get_pets()
+	if pets:
+		for pet_id, pet_data in pets.items():
+			if pet_data and 'items' in pet_data:
+				for item in pet_data['items']:
+					if item and item.get('name') == 'Arena Coin':
+						total_coins += item.get('quantity', 0)
+	return total_coins
+
+# Helper to retrieve configured min sleep time
+def get_min_sleep_minutes():
+	try:
+		val = float(QtBind.text(gui, tbxMinSleep))
+		if val >= 0:
+			return val
+	except Exception:
+		pass
+	return 5.0
+
+# Helper to retrieve final sleep time based on configuration and Arena Coin count
+def get_sleep_minutes():
+	min_sleep = get_min_sleep_minutes()
+	
+	if QtBind.isChecked(gui, cbxIncreaseSleep):
+		try:
+			coin_limit = int(QtBind.text(gui, tbxArenaCoinLimit))
+		except Exception:
+			coin_limit = DEFAULT_COIN_LIMIT
+			
+		try:
+			increased_sleep = float(QtBind.text(gui, tbxIncreaseSleepMin))
+		except Exception:
+			increased_sleep = 10.0
+			
+		coins_count = count_arena_coins()
+		log("Plugin: Checking Arena Coins: count is %d (limit is %d)" % (coins_count, coin_limit))
+		if coins_count < coin_limit:
+			log("Plugin: Arena Coins count (%d) is less than limit (%d). Increasing sleep time to %.1f minutes." % (coins_count, coin_limit, increased_sleep))
+			return increased_sleep
+			
+	return min_sleep
 
 # Injects the second packet to the server
 def inject_second_packet():
@@ -67,8 +135,10 @@ def teleported():
 				zone_name = char_data.get("zone_name", "") if char_data else ""
 				log("Plugin: Teleported to %s (flag teleporting_to_hotan is active)" % zone_name)
 				if "Hotan" in zone_name:
-					log("Plugin: Arrived in Hotan. Sleeping 5 minutes before starting the bot again...")
-					Timer(300.0, start_bot).start()
+					sleep_minutes = get_sleep_minutes()
+					sleep_seconds = sleep_minutes * 60.0
+					log("Plugin: Arrived in Hotan. Sleeping %.1f minutes before starting the bot again..." % sleep_minutes)
+					Timer(sleep_seconds, start_bot).start()
 
 # Called every 500ms
 def event_loop():
