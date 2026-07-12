@@ -328,13 +328,12 @@ def QtBind_ItemsContains(text,lst):
 	return ListContains(text,QtBind.getItems(gui,lst))
 
 # Attacking mobs using all configs from bot
-def AttackMobs(wait,isAttacking,position,radius,duration,elapsed_time,session_id):
+def AttackMobs(wait,position,radius,duration,elapsed_time,session_id):
 	global attack_session_id
 	if session_id != attack_session_id:
 		return
 
-	if isAttacking:
-		elapsed_time += wait
+	elapsed_time += wait
 
 	count = getMobCount(position,radius)
 
@@ -354,12 +353,8 @@ def AttackMobs(wait,isAttacking,position,radius,duration,elapsed_time,session_id
 			terminate = True
 
 	if not terminate:
-		# Start to kill mobs using bot
-		if not isAttacking:
-			start_bot()
-			log("Plugin: Starting to attack at this area. Radius: "+(str(radius) if radius != None else "Max.")+((" for %.1f seconds." % duration) if duration is not None else "."))
 		# Check again after the delay
-		Timer(wait,AttackMobs,[wait,True,position,radius,duration,elapsed_time,session_id]).start()
+		Timer(wait,AttackMobs,[wait,position,radius,duration,elapsed_time,session_id]).start()
 	else:
 		# Invalidate session to prevent any late-firing timers
 		attack_session_id += 1
@@ -384,6 +379,7 @@ def AttackMobs(wait,isAttacking,position,radius,duration,elapsed_time,session_id
 		Timer(2.5,move_to,[position['x'],position['y'],position['z']]).start()
 		# give it some time to reach the movement
 		Timer(5.0,start_bot).start()
+
 
 # Count all mobs around your character (60 or more it's the max. range I think)
 def getMobCount(position,radius):
@@ -587,8 +583,6 @@ def AttackArea(args):
 	# If duration is NOT specified, we only start if there are mobs (> 0).
 	mobs_count = getMobCount(p,radius)
 	if duration is not None or mobs_count > 0:
-		# stop scripting
-		stop_bot()
 		# set automatically the training area
 		set_training_position(p['region'], p['x'], p['y'],p['z'])
 		# set automatically the radius to avoid setting conflict
@@ -603,11 +597,19 @@ def AttackArea(args):
 		current_session = attack_session_id
 
 		# start to kill mobs on other thread because interpreter lock
-		Timer(0.001,AttackMobs,[COUNT_MOBS_DELAY,False,p,radius,duration,0.0,current_session]).start()
+		Timer(0.001,AttackMobs,[COUNT_MOBS_DELAY,p,radius,duration,0.0,current_session]).start()
+
+		# Return delay in ms to keep the script engine waiting while attacking
+		if duration is not None:
+			log("Plugin: Starting to attack at this area. Radius: "+(str(radius) if radius != None else "Max.")+" for %.1f seconds." % duration)
+			return int(duration * 1000)
+		else:
+			log("Plugin: Starting to attack at this area. Radius: "+(str(radius) if radius != None else "Max."))
+			return int(MAX_ATTACKING_TIME * 1000)
 	# otherwise continue normally
 	else:
 		log("Plugin: No mobs at this area. Radius: "+(str(radius) if radius != None else "Max."))
-	return 0
+		return 0
 
 # Use, select and enter to the dimensional forgotten world. 
 # Ex: "GoDimensional" or "GoDimensional,Dimension Hole (Flame Mountain-3 stars)"
