@@ -3,16 +3,26 @@ import QtBind
 from threading import Timer
 import struct
 
-pVersion = '2.0.0'
+pVersion = '2.2.0'
 pName = 'vAutoStyria'
 
 REQUIRED_PROFILE = 'Styria'
+
+# Looping state
+teleporting_to_hotan = False
+
+# Checkbox handler
+def cbxEnableLoop_checked(checked):
+	log("Plugin: Hotan looping has been " + ("enabled" if checked else "disabled"))
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n'
                                  'it waits few seconds then teleports out to Hotan.\n\n'
                                  'By: H Y P E R V I S O R', 10, 10)
+
+cbxEnableLoop = QtBind.createCheckBox(gui, 'cbxEnableLoop_checked', 'Enable Hotan Looping (5 min sleep)', 10, 75)
+QtBind.setChecked(gui, cbxEnableLoop, True)
 
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
@@ -37,6 +47,7 @@ def inject_first_packet():
 
 # Called after teleporting
 def teleported():
+	global teleporting_to_hotan
 	if get_profile() != REQUIRED_PROFILE:
 		return
 	p = get_position()
@@ -44,9 +55,20 @@ def teleported():
 		dist = GetDistance(p['x'], p['y'], -20161, -177)
 		if dist <= 10.0:
 			log("Plugin: Teleported outside Styria Room (confidence: with distance %.1f.) Stopping bot and teleporting out..." % dist)
+			if QtBind.isChecked(gui, cbxEnableLoop):
+				teleporting_to_hotan = True
 			Timer(2.0, stop_bot).start()
-			# Schedule the first packet with 2.0 seconds delay
+			# Schedule the first packet with 3.0 seconds delay
 			Timer(3.0, inject_first_packet).start()
+		elif teleporting_to_hotan:
+			teleporting_to_hotan = False
+			if QtBind.isChecked(gui, cbxEnableLoop):
+				char_data = get_character_data()
+				zone_name = char_data.get("zone_name", "") if char_data else ""
+				log("Plugin: Teleported to %s (flag teleporting_to_hotan is active)" % zone_name)
+				if "Hotan" in zone_name:
+					log("Plugin: Arrived in Hotan. Sleeping 5 minutes before starting the bot again...")
+					Timer(300.0, start_bot).start()
 
 # Called every 500ms
 def event_loop():
