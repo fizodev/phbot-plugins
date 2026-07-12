@@ -22,7 +22,7 @@ MAX_ATTACKING_TIME = 600 # seconds (10 minutes)
 character_data = None
 itemUsedByPlugin = None
 dimensionalItemActivated = None
-attackingTimeCounter = 0 # Used to count the time of attacking mobs
+attack_session_id = 0
 
 # Graphic user interface
 gui = QtBind.init(__name__,pName)
@@ -328,32 +328,54 @@ def QtBind_ItemsContains(text,lst):
 	return ListContains(text,QtBind.getItems(gui,lst))
 
 # Attacking mobs using all configs from bot
-def AttackMobs(wait,isAttacking,position,radius):
-	global attackingTimeCounter
+def AttackMobs(wait,isAttacking,position,radius,duration,elapsed_time,session_id):
+	global attack_session_id
+	if session_id != attack_session_id:
+		return
+
 	if isAttacking:
-		attackingTimeCounter+=1
+		elapsed_time += wait
+
 	count = getMobCount(position,radius)
-	if attackingTimeCounter >= MAX_ATTACKING_TIME:
-		log("Plugin: Attacking time exceeded ("+str(MAX_ATTACKING_TIME)+"s). Returning to town.")
-		count = 0
-		attackingTimeCounter = 0
-		use_return_scroll()
-	if count > 0:
+
+	# Determine termination
+	terminate = False
+	if duration is not None:
+		if elapsed_time >= duration:
+			log("Plugin: AttackArea duration of %.1f seconds has elapsed. Stopping attack." % duration)
+			terminate = True
+	else:
+		if elapsed_time >= MAX_ATTACKING_TIME:
+			log("Plugin: Attacking time exceeded ("+str(MAX_ATTACKING_TIME)+"s). Returning to town.")
+			terminate = True
+			use_return_scroll()
+		elif count == 0:
+			log("Plugin: All mobs killed!")
+			terminate = True
+
+	if not terminate:
 		# Start to kill mobs using bot
 		if not isAttacking:
 			start_bot()
-			log("Plugin: Starting to kill ("+str(count)+") mobs at this area. Radius: "+(str(radius) if radius != None else "Max."))
-		# Check if there is not mobs to continue script
-		Timer(wait,AttackMobs,[wait,True,position,radius]).start()
+			log("Plugin: Starting to attack at this area. Radius: "+(str(radius) if radius != None else "Max.")+((" for %.1f seconds." % duration) if duration is not None else "."))
+		# Check again after the delay
+		Timer(wait,AttackMobs,[wait,True,position,radius,duration,elapsed_time,session_id]).start()
 	else:
-		log("Plugin: All mobs killed!")
-		attackingTimeCounter = 0
+		# Invalidate session to prevent any late-firing timers
+		attack_session_id += 1
+
 		# Waits for pickable drops from pick filter database
 		conn = GetFilterConnection()
-		cursor = conn.cursor()
-		WaitPickableDrops(cursor)
-		conn.close()
-		# All mobs killed, stop botting
+		if conn:
+			try:
+				cursor = conn.cursor()
+				WaitPickableDrops(cursor)
+			except Exception as e:
+				log("Plugin: Error checking pickable drops: "+str(e))
+			finally:
+				conn.close()
+
+		# All mobs killed or time is up, stop botting
 		stop_bot()
 		# Setting training area far away. The bot should continue where he was at the script
 		set_training_position(0,0,0,0)
@@ -401,17 +423,28 @@ def GetDistance(ax,ay,bx,by):
 
 # Create a database connection to config filter
 def GetFilterConnection():
+	global character_data
+	if not character_data:
+		character_data = get_character_data()
+	if not character_data or 'server' not in character_data or 'name' not in character_data:
+		return None
 	# Path to the filter database
 	path = get_config_dir()+character_data['server']+'_'+character_data['name']+'.db3'
-	# Connect to db3
-	return sqlite3.connect(path)
+	if os.path.exists(path):
+		# Connect to db3
+		return sqlite3.connect(path)
+	return None
 
 def IsPickable(filterCursor,ItemID):
+	if not filterCursor:
+		return False
 	# Check existence of pickable item by character
 	return filterCursor.execute('SELECT EXISTS(SELECT 1 FROM pickfilter WHERE id=? AND pick=1 LIMIT 1)',(ItemID,)).fetchone()[0]
 
 # Sleep the thread while waits for pickable drops
 def WaitPickableDrops(filterCursor,waiting=0):
+	if not filterCursor:
+		return
 	# Time is over for waiting drops
 	if waiting >= WAIT_DROPS_DELAY_MAX:
 		log("Plugin: Timeout for picking up drops!")
@@ -517,17 +550,43 @@ def GoDimensionalThread(Name):
 
 # ______________________________ Events ______________________________ #
 
-# Attack all mobs around using the bot config. Ex: "AttackArea" or "AttackArea,75"
+# Attack all mobs around using the bot config. Ex: "AttackArea" or "AttackArea,75" or "AttackArea,75,30"
 # Will be using radius maximum (75 approx) as default
 def AttackArea(args):
 	# radius maximum as default
 	radius = None
-	if len(args) >= 2:
-		radius = round(float(args[1]),2)
+	if len(args) >= 2 and args[1]:
+		try:
+			radius = round(float(args[1]),2)
+		except ValueError:
+			log("Plugin error: AttackArea invalid radius value. Ignoring radius parameter.")
+
+	# duration as optional parameter
+	duration = None
+	if len(args) >= 3 and args[2]:
+		try:
+			duration = round(float(args[2]),2)
+			# Capping duration at 600 seconds as per design decision
+			if duration > 600.0:
+				log("Plugin: AttackArea duration of %.1f seconds exceeds cap. Capping at 600.0 seconds." % duration)
+				duration = 600.0
+			elif duration <= 0:
+				log("Plugin error: AttackArea duration must be positive. Skipping command.")
+				return 0
+		except ValueError:
+			log("Plugin error: AttackArea invalid duration value. Skipping command.")
+			return 0
+
 	# Check position
 	p = get_position()
-	# stop bot and kill mobs through bot
-	if getMobCount(p,radius) > 0:
+	if not p:
+		return 0
+
+	# Check if we should start attacking.
+	# If duration is specified, we ALWAYS start attacking (waiting/killing for duration).
+	# If duration is NOT specified, we only start if there are mobs (> 0).
+	mobs_count = getMobCount(p,radius)
+	if duration is not None or mobs_count > 0:
 		# stop scripting
 		stop_bot()
 		# set automatically the training area
@@ -537,8 +596,14 @@ def AttackArea(args):
 			set_training_radius(radius)
 		else:
 			set_training_radius(100.0)
+
+		# Start a new session to avoid overlapping timers
+		global attack_session_id
+		attack_session_id += 1
+		current_session = attack_session_id
+
 		# start to kill mobs on other thread because interpreter lock
-		Timer(0.001,AttackMobs,[COUNT_MOBS_DELAY,False,p,radius]).start()
+		Timer(0.001,AttackMobs,[COUNT_MOBS_DELAY,False,p,radius,duration,0.0,current_session]).start()
 	# otherwise continue normally
 	else:
 		log("Plugin: No mobs at this area. Radius: "+(str(radius) if radius != None else "Max."))
@@ -557,8 +622,15 @@ def GoDimensional(args):
 	Timer(0.001,GoDimensionalThread,[name]).start()
 	return 0
 
+# Called after teleporting
+def teleported():
+	global attack_session_id
+	attack_session_id += 1
+
 # Called when the character enters the game world
 def joined_game():
+	global attack_session_id
+	attack_session_id += 1
 	loadConfigs()
 
 # All packets received from game server will be passed to this function
