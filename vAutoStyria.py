@@ -11,7 +11,6 @@ DEFAULT_COIN_LIMIT = 250
 
 # Looping state
 teleporting_to_hotan = False
-zerk_counter = 0
 
 
 
@@ -21,9 +20,6 @@ def cbxEnableLoop_checked(checked):
 
 def cbxIncreaseSleep_checked(checked):
 	log("Plugin: Arena Coins low sleeping increase has been " + ("enabled" if checked else "disabled"))
-
-def cbxEnableZerk_checked(checked):
-	log("Plugin: Zerk in Training Area has been " + ("enabled" if checked else "disabled"))
 
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
@@ -45,9 +41,6 @@ tbxIncreaseSleepMin = QtBind.createLineEdit(gui, '10.0', 160, 147, 40, 20)
 
 lblCoinLimit = QtBind.createLabel(gui, 'when Arena Coins <:', 215, 150)
 tbxArenaCoinLimit = QtBind.createLineEdit(gui, str(DEFAULT_COIN_LIMIT), 335, 147, 40, 20)
-
-cbxEnableZerk = QtBind.createCheckBox(gui, 'cbxEnableZerk_checked', 'Enable Zerk in Training Area', 10, 175)
-QtBind.setChecked(gui, cbxEnableZerk, True)
 
 # Calculate the distance from point A to B
 def GetDistance(ax, ay, bx, by):
@@ -170,34 +163,9 @@ def teleported():
 					log("Plugin: Arrived in Hotan. Sleeping %.1f minutes before starting the bot again..." % sleep_minutes)
 					Timer(sleep_seconds, start_bot).start()
 
-# Helper to check and trigger zerk inside the training area
-def check_and_trigger_zerk():
-	training_area = get_training_area()
-	if not training_area:
-		return
-	
-	position = get_position()
-	if not position:
-		return
-	
-	# Calculate distance
-	dx = position['x'] - training_area['x']
-	dy = position['y'] - training_area['y']
-	dist = (dx**2 + dy**2) ** 0.5
-	
-	# If we are within 200 units of the training area center
-	if dist <= 200.0:
-		log("Plugin: Character is in Training Area (distance to center %.1f <= 200.0). Triggering Berserk." % dist)
-		inject_joymax(0x70A7, b'\x01', False)
-
 # Called every 500ms
 def event_loop():
-	global zerk_counter
-	if QtBind.isChecked(gui, cbxEnableZerk):
-		zerk_counter += 1
-		if zerk_counter >= 10:  # 10 * 500ms = 5.0 seconds
-			zerk_counter = 0
-			check_and_trigger_zerk()
+	pass
 
 # Plugin loaded
 log('Plugin: ' + pName + ' v' + pVersion + ' successfully loaded')
