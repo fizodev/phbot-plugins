@@ -146,50 +146,29 @@ def inject_first_packet():
 # Called after teleporting
 def teleported():
 	global teleporting_to_hotan
-	log("Plugin: teleported() event triggered")
-	profile = get_profile()
-	log("Plugin: teleported() - Current profile: %s (Required: %s)" % (profile, REQUIRED_PROFILE))
-	if profile != REQUIRED_PROFILE:
+	if get_profile() != REQUIRED_PROFILE:
 		return
-	
 	p = get_position()
-	if not p:
-		log("Plugin: teleported() - Could not retrieve position (get_position() returned None)")
-		return
-	
-	log("Plugin: teleported() - Position is X: %.1f, Y: %.1f" % (p['x'], p['y']))
-	dist = GetDistance(p['x'], p['y'], -20161, -177)
-	log("Plugin: teleported() - Distance to Styria room exit (-20161, -177) is %.1f" % dist)
-	
-	if dist <= 10.0:
-		log("Plugin: Teleported outside Styria Room (confidence: with distance %.1f.) Stopping bot and teleporting out..." % dist)
-		loop_enabled = QtBind.isChecked(gui, cbxEnableLoop)
-		log("Plugin: teleported() - Hotan looping enabled checkbox state: %s" % str(loop_enabled))
-		if loop_enabled:
-			teleporting_to_hotan = True
-		Timer(2.0, stop_bot).start()
-		# Schedule the first packet with 3.0 seconds delay
-		Timer(3.0, inject_first_packet).start()
-	elif teleporting_to_hotan:
-		log("Plugin: teleported() - Distance is > 10.0, but teleporting_to_hotan flag is active.")
-		teleporting_to_hotan = False
-		loop_enabled = QtBind.isChecked(gui, cbxEnableLoop)
-		log("Plugin: teleported() - Hotan looping enabled checkbox state: %s" % str(loop_enabled))
-		if loop_enabled:
-			char_data = get_character_data()
-			zone_name = char_data.get("zone_name", "") if char_data else ""
-			log("Plugin: Teleported to %s (flag teleporting_to_hotan is active)" % zone_name)
-			if "Hotan" in zone_name:
-				sleep_minutes = get_sleep_minutes()
-				sleep_seconds = sleep_minutes * 60.0
-				log("Plugin: Arrived in Hotan. Sleeping %.1f minutes before starting the bot again..." % sleep_minutes)
-				Timer(sleep_seconds, start_bot).start()
-			else:
-				log("Plugin: Teleported to a zone that is not Hotan: %s. Ignoring sleep." % zone_name)
-		else:
-			log("Plugin: teleported() - Hotan looping is disabled, ignoring teleport.")
-	else:
-		log("Plugin: teleported() - Distance is > 10.0 and teleporting_to_hotan is False. No action taken.")
+	if p:
+		dist = GetDistance(p['x'], p['y'], -20161, -177)
+		if dist <= 10.0:
+			log("Plugin: Teleported outside Styria Room (confidence: with distance %.1f.) Stopping bot and teleporting out..." % dist)
+			if QtBind.isChecked(gui, cbxEnableLoop):
+				teleporting_to_hotan = True
+			Timer(2.0, stop_bot).start()
+			# Schedule the first packet with 3.0 seconds delay
+			Timer(3.0, inject_first_packet).start()
+		elif teleporting_to_hotan:
+			teleporting_to_hotan = False
+			if QtBind.isChecked(gui, cbxEnableLoop):
+				char_data = get_character_data()
+				zone_name = char_data.get("zone_name", "") if char_data else ""
+				log("Plugin: Teleported to %s (flag teleporting_to_hotan is active)" % zone_name)
+				if "Hotan" in zone_name:
+					sleep_minutes = get_sleep_minutes()
+					sleep_seconds = sleep_minutes * 60.0
+					log("Plugin: Arrived in Hotan. Sleeping %.1f minutes before starting the bot again..." % sleep_minutes)
+					Timer(sleep_seconds, start_bot).start()
 
 # Helper to check and trigger zerk inside the training area
 def check_and_trigger_zerk():
