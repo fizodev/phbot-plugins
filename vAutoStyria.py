@@ -147,6 +147,7 @@ def teleported():
 	if get_profile() != REQUIRED_PROFILE:
 		return
 	p = get_position()
+	log("Plugin: Teleported: " + str(p))
 	if p:
 		dist = GetDistance(p['x'], p['y'], -20161, -177)
 		if dist <= 10.0:
