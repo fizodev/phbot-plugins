@@ -18,10 +18,6 @@ current_loop = 1
 def cbxIncreaseSleep_checked(checked):
 	log("Plugin: Arena Coins low sleeping increase has been " + ("enabled" if checked else "disabled"))
 
-def btnGetPosition_clicked():
-	p = get_position()
-	log("Plugin: Debug get_position() -> %s" % str(p))
-
 # Graphic user interface
 gui = QtBind.init(__name__, pName)
 lblInfo = QtBind.createLabel(gui, 'vAutoStyria detects teleportation. If character is found outside Styria Room,\n'
@@ -42,8 +38,6 @@ tbxIncreaseSleepMin = QtBind.createLineEdit(gui, '10.0', 160, 147, 40, 20)
 
 lblCoinLimit = QtBind.createLabel(gui, 'when Arena Coins <:', 215, 150)
 tbxArenaCoinLimit = QtBind.createLineEdit(gui, str(DEFAULT_COIN_LIMIT), 335, 147, 40, 20)
-
-btnGetPosition = QtBind.createButton(gui, 'btnGetPosition_clicked', '  Get Position  ', 10, 180)
 
 # Helper to retrieve configured maximum loop count
 def get_loop_count():
