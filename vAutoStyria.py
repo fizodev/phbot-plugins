@@ -9,6 +9,11 @@ pName = 'vAutoStyria'
 REQUIRED_PROFILE = 'Styria'
 DEFAULT_COIN_LIMIT = 250
 
+# Region Constants
+REGION_STYRIA = 32242
+REGION_INTERMEDIARY = -32745
+REGION_HOTAN = 23687
+
 # Looping state
 teleporting_to_hotan = False
 current_loop = 1
@@ -49,9 +54,7 @@ def get_loop_count():
 		pass
 	return 1
 
-# Calculate the distance from point A to B
-def GetDistance(ax, ay, bx, by):
-	return ((bx - ax) ** 2 + (by - ay) ** 2) ** (0.5)
+
 
 # Helper to count total Arena Coins in inventory and pets
 def count_arena_coins():
@@ -149,15 +152,15 @@ def teleported():
 	p = get_position()
 	log("Plugin: Teleported: " + str(p))
 	if p:
-		dist = GetDistance(p['x'], p['y'], -20161, -177)
-		if dist <= 10.0:
+		region = p.get('region', 0)
+		if region == REGION_INTERMEDIARY:
 			max_loops = get_loop_count()
 			if max_loops > 1 and current_loop < max_loops:
 				teleporting_to_hotan = True
-				log("Plugin: Teleported outside Styria Room (distance: %.1f). Completed run %d of %d. Stopping bot and teleporting out..." % (dist, current_loop, max_loops))
+				log("Plugin: Teleported outside Styria Room (Intermediary region). Completed run %d of %d. Stopping bot and teleporting out..." % (current_loop, max_loops))
 			else:
 				teleporting_to_hotan = False
-				log("Plugin: Teleported outside Styria Room (distance: %.1f). Completed run %d of %d. Stopping bot and teleporting out..." % (dist, current_loop, max_loops))
+				log("Plugin: Teleported outside Styria Room (Intermediary region). Completed run %d of %d. Stopping bot and teleporting out..." % (current_loop, max_loops))
 				current_loop = 1
 			Timer(2.0, stop_bot).start()
 			# Schedule the first packet with 3.0 seconds delay
@@ -167,10 +170,8 @@ def teleported():
 			max_loops = get_loop_count()
 			if max_loops > 1 and current_loop < max_loops:
 				current_loop += 1
-				char_data = get_character_data()
-				zone_name = char_data.get("zone_name", "") if char_data else ""
-				log("Plugin: Teleported to %s (flag teleporting_to_hotan is active)" % zone_name)
-				if "Hotan" in zone_name:
+				log("Plugin: Teleported to region %d (flag teleporting_to_hotan is active)" % region)
+				if region == REGION_HOTAN:
 					sleep_minutes = get_sleep_minutes()
 					sleep_seconds = sleep_minutes * 60.0
 					log("Plugin: Arrived in Hotan. Preparing run %d of %d. Sleeping %.1f minutes before starting the bot again..." % (current_loop, max_loops, sleep_minutes))
